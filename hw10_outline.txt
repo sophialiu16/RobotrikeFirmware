@@ -1,0 +1,133 @@
+; Sophia Liu
+; EE/CS 51 HW10 Outline
+
+; main loop
+
+Initialize stack pointer
+Initialize data segment
+
+Disable interrupts
+Initialize chip selects
+Clear IRQ vectors
+Initialize MotorTimer
+Install MotorHandler
+
+Initialize motors
+Initialize parity
+Initialize baud rate
+Initialize Serial
+Initialize parser
+
+Allow interrupts
+
+Loop:
+    Call DequeueEvent
+    IF CriticalErrorFlag == 1
+        Call CriticalTrikeEventHandler
+    ENDIF
+EndLoop
+
+; CriticalTrikeEventHandler
+;
+;
+; Description: To be called when the critical error flag is set. Resets
+;              the motors, serial, parser, and event queue and restarts everything.
+;
+; Operation: Re-initializes the motors, parser, serial, and event queue
+;            /critical error flag.
+;
+; Arguments:         None.
+; Return Values:     None.
+;
+; Local Variables:   None.
+; Shared Variables:  None.
+; Global Variables:  None.
+;
+; Input:             None.
+; Output:            None.
+;
+; Error Handling:    None.
+; Algorithms:        None.
+; Data Structures:   None.
+;
+; Known Bugs:        None.
+; Limitations:       None.
+; Registers changed:
+; Stack depth:
+;
+; Revision History: 11/29/16   Sophia Liu      initial revision
+;
+; Pseudo code
+; Initialize Motors
+; Initialize Parser
+; Initialize Serial
+; Initialize EventQueue
+; Return
+
+; HandleReceivedChar
+;
+;
+; Description: Handler for received characters from the serial port.
+;     Calls the parser to handle the character.
+;
+; Operation: Calls ParseSerialChar(c) for the character.
+;
+; Arguments:         character c received (AL)
+; Return Values:     None.
+;
+; Local Variables:   None.
+; Shared Variables:  None.
+; Global Variables:  None.
+;
+; Input:             None.
+; Output:            None.
+;
+; Error Handling:    None.
+; Algorithms:        None.
+; Data Structures:   None.
+;
+; Known Bugs:        None.
+; Limitations:       None.
+; Registers changed:
+; Stack depth:
+;
+; Revision History: 11/29/16   Sophia Liu      initial revision
+;
+; Pseudo code
+; ParseSerialChar(c)
+; Return
+
+; HandleReceivedChar
+;
+;
+; Description: Handler if a motor or serial port error occurs. Takes a constant
+;     for the error in AH.
+;
+; Operation: Gets the corresponding string from a table and sends an error
+;     string over the serial port by calling SerialPutString.
+;
+; Arguments:         error constant, AH
+; Return Values:     None.
+;
+; Local Variables:   None.
+; Shared Variables:  None.
+; Global Variables:  None.
+;
+; Input:             None.
+; Output:            None.
+;
+; Error Handling:    None.
+; Algorithms:        None.
+; Data Structures:   None.
+;
+; Known Bugs:        None.
+; Limitations:       None.
+; Registers changed:
+; Stack depth:
+;
+; Revision History: 11/29/16   Sophia Liu      initial revision
+;
+; Pseudo code
+; string = ErrorTable(error)
+; Call serialPutChar(string)
+; Return
