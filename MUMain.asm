@@ -85,7 +85,7 @@ MOV     CX, BAUD_9600           ; store baud rate index to initialize serial
 CALL    InitSerial              ; initialize serial
 
 CALL    InitEvent               ; initialize event queue
-CALL    InitMUMain              ; initialize remote main loop
+;CALL    InitMUMain              ; initialize remote main loop
 
 STI                             ; allow interrupts
 
@@ -153,21 +153,21 @@ JE HaveStateError        ; if in error state, enqueue parser error event
 
 ;constantly send status over
 sendStatus:
-MOV [SI], 'S'         ; send motor status over serial to remote
+MOV BYTE PTR [SI], 'S'         ; send motor status over serial to remote
 
 CALL GetMotorSpeed    ; get current motor speed
-MOV [SI+1], AH        ; send over 
-MOV [SI+2], AL
+MOV BYTE PTR [SI + 1], AH        ; send over 
+MOV BYTE PTR [SI + 2], AL
 
 CALL GetMotorDirection
-MOV [SI+3], AH
-MOV [SI+4], AL
+MOV BYTE PTR [SI + 3], AH
+MOV BYTE PTR [SI + 4], AL
 
 CALL GetLaser
-MOV [SI+5], AL
+MOV BYTE PTR [SI + 5], AL
 
-MOV [SI+6], CARRIAGE_RETURN
-MOV [SI+7], ASCII_NULL
+MOV BYTE PTR [SI + 6], CARRIAGE_RETURN
+MOV BYTE PTR [SI + 7], ASCII_NULL
 CALL SerialPutString
 
 JMP EndHandleReceivedChar
@@ -214,10 +214,10 @@ HandleReceivedChar	ENDP
 HandleRemoteError       PROC        NEAR
 
 ; send over the error
-MOV [SI], 'E'                   ; send error over
-MOV [SI + 1], AH                ; send error constant
-MOV [SI + 2], CARRIAGE_RETURN   ; carriage return for parser
-MOV [SI + 3], ASCII_NULL        ; ascii_null to terminate string
+MOV BYTE PTR [SI], 'E'                   ; send error over
+MOV BYTE PTR [SI + 1], AH                ; send error constant
+MOV BYTE PTR [SI + 2], CARRIAGE_RETURN   ; carriage return for parser
+MOV BYTE PTR [SI + 3], ASCII_NULL        ; ascii_null to terminate string
 CALL SerialPutString            ; send error string over serial
 
 RET

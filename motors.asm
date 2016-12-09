@@ -659,6 +659,11 @@ SetTurretAngle     PROC    NEAR
 RET
 SetTurretAngle ENDP
 
+SetTurretElevation     PROC    NEAR
+                       PUBLIC  SetTurretElevation
+RET
+SetTurretElevation ENDP
+
 
 ; Backwards_Motor
 ;
