@@ -21,11 +21,17 @@ LASER_ON_OUTPUT    EQU 10000000B ; output value for parallel port for laser on
 
 ; speed constants
 IGNORE_SPEED       EQU 65535  ; speed value indicating to ignore speed argument
+MAX_SPEED_ARG      EQU 65534  ; maximum speed value
 
 ; angle constants
 STRAIGHT           EQU 0      ; angle for straight ahead relative to the RoboTrike
 IGNORE_ANGLE       EQU -32768 ; angle value indicating to ignore angle argument
 MAX_ANGLE          EQU 360    ; maximum allowed angle value (range from 0 to max_angle)
+MIN_ANGLE_ARG      EQU -32767 ; minimum allowed angle
+
+; turret elevation constants 
+MAX_TURRET_ELV EQU 60     ; maximum angle for turret elevation
+MIN_TURRET_ELV EQU -60    ; minimum angle for turret elevation
 
 ; PWM constants
 MOTOR_OFF          EQU 0         ; pulse width value for motors to be off
