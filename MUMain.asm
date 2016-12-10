@@ -221,7 +221,6 @@ CALL GetLaser              ; get current laser status
 MOV CS:[SI + 5], AL        ; send bit of laser status
 
 MOV BYTE PTR CS:[SI + 6], CARRIAGE_RETURN ; end with carriage return
-;MOV BYTE PTR CS:[SI + 7], ASCII_NULL;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 MOV CX, STATUS_CHAR_NUM                   ; send over that number of characters
 CALL SerialPutStringNum                   ; send characters over serial
 
