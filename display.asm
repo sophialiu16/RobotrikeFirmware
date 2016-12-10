@@ -31,8 +31,9 @@ NAME DISPLAY
 ;                  DisplayNum and DisplayHex.
 ; Known Bugs:     None.
 ; Limitations:    None.
-; Revision History: 10/28/16 Sophia Liu       initial revision
-;                   10/30/16 Sophia Liu       updated comments
+; Revision History: 10/28/16   Sophia Liu       initial revision
+;                   10/30/16   Sophia Liu       updated comments
+;                   12/03/16   Sophia Liu      Changed to 14 seg display
 
 $INCLUDE(display.inc) ; local include file for display constants and addresses
 
@@ -94,7 +95,7 @@ ClearDisplay:
 MOV DI, 0                ; set BufferPointer to first DigitBuffer element
 MOV AL, ' '              ; get blank character
 MOV BL, AL               ; move character to access table
-XOR BH, BH               
+XOR BH, BH
 SHL BX, 1                ; multiply baud table index by 2 to access word table
 MOV AX, CS:ASCIISegTable[BX] ; get the baud rate divisor from BaudTable
 
@@ -179,9 +180,9 @@ MOV BL, AL               ; move baud table index to access table
 XOR BH, BH
 SHL BX, 1                ; multiply baud table index by 2 to access word table
 MOV AX, CS:ASCIISegTable[BX] ; get the baud rate divisor from BaudTable
-SHL DI, 1
+SHL DI, 1                     ; multiply by 2 word array access
 MOV DigitBuffer[DI], AX       ; store character pattern in the digit buffer
-SHR DI, 1
+SHR DI, 1                     ; restore non-modified index
 INC DI                        ; go to the next digit buffer element
 CMP DI, DISPLAY_SIZE
 JNE CheckNull                 ; while BufferPointer has not reached the end of
@@ -356,9 +357,9 @@ MOV CurDigitInd, 0 ; wrap index around to the beginning by setting index to
 
 UpdateDisplay:
 MOV BX, CurDigitInd ; prepare to access display buffer
-SHL BX, 1
+SHL BX, 1           ; multiply by 2 for word array access
 MOV AX, DigitBuffer[BX] ; get segment pattern of current digit
-SHR BX, 1
+SHR BX, 1           ; restore non-modified index
 
 MOV DX, LED_DISPLAY_HIGH_BIT
 XCHG AH, AL
@@ -367,7 +368,7 @@ OUT DX, AL          ; output the high bit of the pattern to the LED display
 MOV DX, LED_DISPLAY  ; prepare to output to LED display by getting display address
 ADD DX, BX           ; get address of next digit in display
 XCHG AH, AL
-OUT DX, AL          ; output the low bit of the pattern to the LED display
+OUT DX, AL           ; output the low bit of the pattern to the LED display
 
 
 
