@@ -268,38 +268,16 @@ MOV StatusStringPos, 0
 MOV ReceivedState, IDLE_STATE
 MOV SI, OFFSET(StatusString)
 
-
-MOV AX, [SI]    ; check if have updated speed
-XCHG AH, AL
-CMP AX, Speed
-JNE DisplaySpeed
-
-ADD SI, 2      ; check if have updated angle
+; update speed
 MOV AX, [SI]
 XCHG AH, AL
-CMP AX, Angle
-JNE DisplayAngle
-
-ADD SI, 2      ; check if have updated laser
-MOV AL, [SI]
-CMP AL, Laser
-JNE DisplayLaser
-JE EndHandleReceivedChar
-
-DisplaySpeed: ; update speed and display
 MOV Speed, AX
-Call DisplayHex
-JMP EndHandleReceivedChar
 
-DisplayAngle: ; update angle and display
+; update angle
+ADD SI, 2
+MOV AX, [SI]
+XCHG AH, AL
 MOV Angle, AX
-Call DisplayNum
-JMP EndHandleReceivedChar
-
-DisplayLaser: ; update laser and display
-MOV Laser, AL
-XOR AH, AH
-Call DisplayNum
 JMP EndHandleReceivedChar
 
 CheckOtherState: ; check for S and E keywords
@@ -421,7 +399,6 @@ MOV StatusStringPos, 0        ; set to 0 status chars received
 MOV ReceivedState, IDLE_STATE ; set received char state to idle
 MOV Speed, 0                  ; set speed var to 0
 MOV Angle, STRAIGHT           ; set angle to straight ahead
-MOV Laser, LASER_OFF          ; set laser to off
 
 RET
 InitRMain	ENDP
@@ -461,6 +438,8 @@ InitRMain	ENDP
 ;                   12/04/16   Sophia Liu      updated comments
 HandleKeyPress       PROC        NEAR
                      PUBLIC      HandleKeyPress
+; check for show speed and show angle 
+
 
 InitScanKeyLookup:                      ;setup for the table lookup
 MOV DI, OFFSET(ScanCodeTable)           ;ES:DI points at table
@@ -488,6 +467,13 @@ SendCommand:
 CALL SerialPutString        ;send command over serial
 
 EndHandleKeyPress:
+SUB DI, OFFSET(CommandStringTable) ; modify previous address for display string table
+ADD DI, OFFSET(DisplayStringTable)
+MOV SI, CS:[DI]             ; get address for si
+PUSH CS                     ; change to ES for Display
+POP ES
+CALL Display
+
 RET
 HandleKeyPress	ENDP
 
@@ -505,10 +491,13 @@ HandleKeyPress	ENDP
 
 EventTable    LABEL    WORD
   ; DW    Address of function, IP
-  	DW    OFFSET(HandleSerialError)  ; serial error (from remote unit)
-    DW    OFFSET(HandleSerialError)  ; parser error (from motor unit)
-    DW    OFFSET(HandleSerialError)  ; serial error (from motor unit)
-    DW    OFFSET(HandleSerialError)  ; serial error
+    DW    OFFSET(HandleSerialError)  ; overrun error
+    DW    OFFSET(HandleSerialError)  ; parity error (from remote unit)
+    DW    OFFSET(HandleSerialError)  ; framing error (from remote unit)
+    DW    OFFSET(HandleSerialError)  ; break error (from remote unit)
+  	DW    OFFSET(HandleSerialError)  ; parser error (from remote unit)
+    DW    OFFSET(HandleSerialError)  ; motor serial error (from motor unit)
+    DW    OFFSET(HandleSerialError)  ; serial output error
   	DW    OFFSET(HandleKeyPress)     ; key event
     DW    OFFSET(HandleReceivedChar) ; serial received event
 
@@ -535,8 +524,8 @@ EventTable    LABEL    WORD
         %TABENT(0D1H, 'S32767', 13)    ;forward at half speed
         %TABENT(0B1H, 'D180', 13)      ;reverse at half speed
         %TABENT(071H, 'D90', 13)       ;turn right
-        %TABENT(0E2H, 'D30', 13)       ;increase angle (right)
-        %TABENT(0D2H, 'D-30', 13)      ;decrease angle (left)
+        %TABENT(0E2H, 'D30', 13)       ;increase angle (right 30 degrees)
+        %TABENT(0D2H, 'D-30', 13)      ;decrease angle (left 30 degrees)
         %TABENT(0B2H, 'S0', 13)        ;stap robot
         %TABENT(00H, 0)                ;illegal key combination
 )
@@ -573,15 +562,58 @@ CommandStringTable  LABEL	BYTE
 	%TABLE
 
 
+; DisplayTable
+;
+; Description:      Display table for key commands
+;
+; Author:           Sophia Liu
+; Last Modified:    Dec 9, 2016
+%*DEFINE(DISTABLE) (
+  %SET(EntryNo, 0)
+  %TABENT('INC SP')         ;increase speed
+  %TABENT('DEC SP')         ;decrease speed
+  %TABENT('LASER ON')       ;laser on
+  %TABENT('LASEROFF')       ;laser off
+  %TABENT('LEFT')           ;turn left
+  %TABENT('FORWARD')        ;forward at half speed
+  %TABENT('REVERSE')        ;reverse at half speed
+  %TABENT('RIGHT')          ;turn right
+  %TABENT('RIGHT 30')       ;increase angle (right 30 degrees)
+  %TABENT('LEFT 30')        ;decrease angle (left 30 degrees)
+  %TABENT('STOP')           ;stap robot
+  %TABENT('BAD KEY')        ;illegal key combination
+)
+
+%*DEFINE(TABENT(string))    (
+DisStr%EntryNo	LABEL	BYTE
+	DB      %string, 0			%' define the string '
+	%SET(EntryNo, %EntryNo + 1)		%' update string number '
+)
+; create the table of strings
+	%DISTABLE
+
+; this macro defines the table of string pointers
+%*DEFINE(TABENT(string))  (
+	DW      OFFSET(DisStr%EntryNo)		%' define the string pointer '
+	%SET(EntryNo, %EntryNo + 1)		%' update string number '
+)
+
+; create the table of string pointers
+DisplayStringTable  LABEL	BYTE
+	%DISTABLE
+
 ; ErrorTables
 ;
 ; Description:      Tables for getting the error string.
 ;
 ; Author:           Sophia Liu
-; Last Modified:    Dec 4, 2016
+; Last Modified:    Dec 9, 2016
 %*DEFINE(ERRTABLE) (
   %SET(EntryNo, 0)
-	%TABENT('LSR ERR')
+	%TABENT('OVER ERR')
+  %TABENT('PART ERR')
+  %TABENT('FRM ERR')
+  %TABENT('BRK ERR')
 	%TABENT('PARS ERR')
 	%TABENT('MS ERR')
 	%TABENT('OC ERR')
@@ -610,12 +642,11 @@ CODE    ENDS
 
 DATA    SEGMENT PUBLIC  'DATA'
 
-StatusString    DB STATUS_NUM DUP (?) ; string containing updated status (speed, angle, laser)
+StatusString    DB STATUS_NUM DUP (?) ; string containing updated status (speed, angle)
 StatusStringPos DW ? ; word containing index into status string
 ReceivedState   DB ? ; byte containing state for received char
 Speed           DW ? ; 16-bit unsigned value for speed of RoboTrike
 Angle           DW ? ; 16-bit signed value for angle of RoboTrike
-Laser           DB ? ; 8-bit value for laser status of RoboTrike
 
 DATA    ENDS
 
