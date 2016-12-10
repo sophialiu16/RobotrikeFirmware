@@ -140,8 +140,8 @@ SerialPutString	ENDP
 ;     the character is retried up to ATTEMPT_OUTPUT_CHAR times until an
 ;     error is enqueued in the event queue.
 ;
-; Arguments:         String (CS:SI) to be outputted to the serial port, 
-;                    CX number of characters to output 
+; Arguments:         String (CS:SI) to be outputted to the serial port,
+;                    CX number of characters to output
 ; Return Values:     None.
 ;
 ; Local Variables:   None.
@@ -158,7 +158,7 @@ SerialPutString	ENDP
 ;
 ; Known Bugs:        None.
 ; Limitations:       None.
-; Registers changed: SI, BX, AX, DI 
+; Registers changed: SI, BX, AX, DI
 ; Stack depth:       1 word.
 ;
 ; Revision History: 11/29/16   Sophia Liu      initial revision
@@ -168,7 +168,7 @@ SerialPutStringNum       PROC        NEAR
                       PUBLIC      SerialPutStringNum
 MOV DI, 0
 PutCharLoop2:
-CMP DI, CX  
+CMP DI, CX
 JGE SerialPutStringEnd2         ; if the character is ascii null, done with string
 ;JL PutCharLoopBody2          ; otherwise, send character
 
@@ -178,16 +178,16 @@ MOV AL, BYTE PTR CS:[SI]      ; put char in AL as argument for SerialPutChar
 
 PutChar2:
 PUSH SI                       ; save string address
-PUSH DI 
+PUSH DI
 CALL SerialPutChar            ; attempt to output character
-POP DI 
+POP DI
 POP SI                        ; restore string address
 JC SerialPutCharError2         ; if carry flag is set, queue is full and cannot output
 ;JNC NextChar2                 ; if carry flag is not set, outputted, can move on
 
 NextChar2:
 INC SI                        ; move on to next address for next char in string
-INC DI                         
+INC DI
 JMP PutCharLoop2               ; loop back to try to output next character
 
 SerialPutCharError2:
@@ -537,21 +537,63 @@ ModemStatus	ENDP
 ;
 ; Known Bugs:       None.
 ; Limitations:      None.
-; Registers changed: AX, DX
+; Registers changed: AX, DX, BX
 ; Stack depth:       0 words.
 ;
 ; Revision History: 11/14/16   Sophia Liu      initial revision
 ;                   11/20/16   Sophia Liu      updated comments
+;                   12/09/16   Sophia Liu      check for specific LSR errors
 
 LineStatus   PROC        NEAR
 
 MOV DX, SERIAL_LSR         ; access serial line status register
 IN AL, DX                  ; get serial line status register value
+MOV BL, AL                 ; store lsr value
 
-AND AL, LSR_ERROR_BIT_MASK ; mask error bits from LSR, value to be enqueued
-MOV AH, LSR_ERROR_EVENT    ; store LSR error event constant to be enqueued
+CheckOverrunError:
+AND AL, LSR_OVERRUN_ERR    ; mask for overrun error bit
+JZ  CheckParityError       ; if no overrun error, check for next error
+; JNZ OverrunError         ; otherwise enqueue error
+
+OverrunError:
+MOV AH, OVERRUN_ERROR      ; store overrun error event constant to be enqueued
 CALL EnqueueEvent          ; enqueue error event
+; JMP CheckParityError     ; proceed to check for next error
 
+CheckParityError:
+MOV AL, BL                 ; get original lsr value
+AND AL, LSR_PARITY_ERROR   ; mask for parity error bit
+JZ CheckFramingError       ; if no parity error, check for next error
+; JNZ ParityError          ; else enqueue error
+
+ParityError:
+MOV AH, PARITY_ERROR       ; store parity error event constant to be enqueued
+CALL EnqueueEvent          ; enqueue error event
+; JMP CheckFramingError    ; proceed to next error
+
+CheckFramingError:
+MOV AL, BL                  ; get original lsr value
+AND AL, LSR_FRAMING_ERROR   ; mask for framing error bit
+JZ CheckBreakError          ; if no framing error, check for next error
+; JNZ FramingError          ; else enqueue error
+
+FramingError:
+MOV AH, FRAMING_ERROR       ; store framing error event constant to be enqueued
+CALL EnqueueEvent           ; enqueue error event
+; JMP CheckBreakError       ; proceed to next error
+
+CheckBreakError:
+MOV AL, BL                  ; get original lsr value
+AND AL, LSR_BREAK_ERROR     ; mask for framing error bit
+JZ EndLineStatus            ; if no framing error, can end
+; JNZ BreakError            ; else enqueue error
+
+BreakError:
+MOV AH, BREAK_ERROR         ; store framing error event constant to be enqueued
+CALL EnqueueEvent           ; enqueue error event
+; JMP EndLineStatus         ; done with errors, can end
+
+EndLineStatus:
 RET
 LineStatus	ENDP
 
