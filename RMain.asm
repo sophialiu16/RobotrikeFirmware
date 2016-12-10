@@ -38,7 +38,7 @@ NAME RMAIN
 ;   ___________________________________________________________
 ;   |Increase angle |Decrease angle   | Stop     |	          |
 ;   ___________________________________________________________
-;   |Show speed     |Show angle       |          |	          |
+;   |Show speed     |Show angle       | Show laser|	          |
 ;   ___________________________________________________________
 
 ;  Command	         Action
@@ -125,7 +125,7 @@ EXTRN   CheckCriticalErrorFlag:NEAR
 
 EXTRN   Display:NEAR
 EXTRN   DisplayNum:NEAR
-EXTRN   DisplayHex:NEAR
+EXTRN   DisplayHex:NEAR 
 
 START:
 
@@ -445,6 +445,36 @@ InitRMain	ENDP
 HandleKeyPress       PROC        NEAR
                      PUBLIC      HandleKeyPress
 ; check for show speed and show angle 
+CheckShowSpeed:
+CMP AL, 0E3H ; show speed 
+JNE CheckShowAngle
+;JE ShowSpeed
+
+ShowSpeed:
+MOV AX, Speed 
+CALL DisplayHex
+JMP ReturnHandleKeyPress
+
+checkShowAngle:
+CMP AL, 0D3H
+JNE CheckShowLaser
+;JE ShowSpeed
+
+ShowAngle: 
+MOV AX, Angle 
+CALL DisplayNum 
+JMP ReturnHandleKeyPress 
+
+CheckShowLaser:
+CMP AL, 0B3H 
+JNE InitScanKeyLookup
+;JE ShowLaser 
+
+ShowLaser: 
+XOR AH, AH 
+MOV AL, Laser
+CALL DisplayNum 
+JMP ReturnHandleKeyPress
 
 
 InitScanKeyLookup:                      ;setup for the table lookup
@@ -480,6 +510,7 @@ PUSH CS                     ; change to ES for Display
 POP ES
 CALL Display
 
+ReturnHandleKeyPress:
 RET
 HandleKeyPress	ENDP
 
@@ -532,7 +563,7 @@ EventTable    LABEL    WORD
         %TABENT(071H, 'D90', 13)       ;turn right
         %TABENT(0E2H, 'D30', 13)       ;increase angle (right 30 degrees)
         %TABENT(0D2H, 'D-30', 13)      ;decrease angle (left 30 degrees)
-        %TABENT(0B2H, 'S0', 13)        ;stap robot
+        %TABENT(0B2H, 'S0', 13)        ;stop robot
         %TABENT(00H, 0)                ;illegal key combination
 )
 
