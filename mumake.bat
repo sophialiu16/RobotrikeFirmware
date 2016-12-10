@@ -30,7 +30,7 @@ asm86 EHdlr.asm m1 db ep
 asm86 serial.asm m1 db ep
 asm86 seriali.asm m1 db ep
 
-link86 mumain.obj, eventq.obj, queue.obj, motors.obj, motortmr.obj, trigtbl.obj, state.obj to temp1.lnk
-link86 initcs.obj, EHdlr.obj, serial.obj, seriali.obj to temp2.lnk
+link86 mumain.obj, queue.obj, motors.obj, motortmr.obj, trigtbl.obj, state.obj to temp1.lnk
+link86 initcs.obj, EHdlr.obj, serial.obj, seriali.obj, hw7test.obj to temp2.lnk
 link86 temp1.lnk, temp2.lnk to mumain.lnk
 loc86 mumain.lnk to mumain NOIC AD(SM(CODE(4000H), DATA(400H), STACK(7000H)))

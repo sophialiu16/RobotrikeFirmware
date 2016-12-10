@@ -284,7 +284,6 @@ JMP SerialPutCharDone ; done with kickstarting, reset carry flag and finish
 TxQueueFull:
 STC                   ; TxQueue is full, set carry flag to 1
 
-
 SerialPutCharDone:
 POPF                      ; restore interrupt flag, end of critical code
 RET

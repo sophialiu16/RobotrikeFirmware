@@ -46,17 +46,16 @@ EXTRN   InitSerial:NEAR
 EXTRN   SerialPutString:NEAR
 EXTRN   SerialPutStringNum:NEAR
 
-EXTRN   InitEvent:NEAR
-
+;EXTRN   InitEvent:NEAR
 EXTRN   EnqueueEvent:NEAR
-EXTRN   DequeueEvent:NEAR
-EXTRN   CheckCriticalErrorFlag:NEAR
+;EXTRN   DequeueEvent:NEAR
+;EXTRN   CheckCriticalErrorFlag:NEAR
 
 EXTRN   GetMotorSpeed:NEAR
 EXTRN   GetMotorDirection:NEAR
 EXTRN   GetLaser:NEAR
 
- 
+EXTRN   SerialIOTest:NEAR 
 
 START:
 
@@ -87,14 +86,15 @@ MOV     BX, NO_PARITY           ; store parity index to initialize serial
 MOV     CX, BAUD_9600           ; store baud rate index to initialize serial
 CALL    InitSerial              ; initialize serial
 
-CALL    InitEvent               ; initialize event queue
-;CALL    InitMUMain              ; initialize remote main loop
+;CALL    InitEvent               ; initialize event queue
 
 STI                             ; allow interrupts
 
+CALL    SerialIOTest            ; run the serial I/O tests
+
 
 EventLoop:                  ; infinite loop for running events
-CALL DequeueEvent           ; attempt to dequeue an event from the event queue
+;CALL DequeueEvent           ; attempt to dequeue an event from the event queue
 CMP AX, NO_EVENT            ; check if anything was dequeued
 JE EventLoopEnd             ; if the no event value is returned, no event to do, end
 ;JNE ProcessEvent           ; else, process the dequeued event
@@ -106,7 +106,7 @@ MOV CX, CS:MUEventTable[BX] ; get function from call table for current event
 CALL CX                     ; call correct function to deal with event
 
 CheckCriticalError:
-CALL CheckCriticalErrorFlag ; check for a critical error
+;CALL CheckCriticalErrorFlag ; check for a critical error
 JNC EventLoopEnd            ; if the carry flag is not set, no critical error, loop
 ;JC CriticalError           ; if the carry flag is set, there is a critical error
 
