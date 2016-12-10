@@ -19,7 +19,7 @@ ERROR_RX_STATE        EQU 0 ; state when receiving an error from the motor unit
 STATUS_STATE          EQU 1 ; state when receiving a status update from the motor unit
 IDLE_STATE            EQU 2 ; state when not receiving an error or status
 
-STATUS_NUM            EQU 4 ; number of expected characters from motor unit
+STATUS_NUM            EQU 5 ; number of expected characters from motor unit
                             ;     status update
 
 ; other constants

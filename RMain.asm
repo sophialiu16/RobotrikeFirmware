@@ -278,6 +278,11 @@ ADD SI, 2
 MOV AX, [SI]
 XCHG AH, AL
 MOV Angle, AX
+
+; update laser
+ADD SI, 2 ; 
+MOV AL, [SI]
+MOV Laser, AL 
 JMP EndHandleReceivedChar
 
 CheckOtherState: ; check for S and E keywords
@@ -399,6 +404,7 @@ MOV StatusStringPos, 0        ; set to 0 status chars received
 MOV ReceivedState, IDLE_STATE ; set received char state to idle
 MOV Speed, 0                  ; set speed var to 0
 MOV Angle, STRAIGHT           ; set angle to straight ahead
+MOV Laser, LASER_OFF ; set laser to off
 
 RET
 InitRMain	ENDP
@@ -647,6 +653,7 @@ StatusStringPos DW ? ; word containing index into status string
 ReceivedState   DB ? ; byte containing state for received char
 Speed           DW ? ; 16-bit unsigned value for speed of RoboTrike
 Angle           DW ? ; 16-bit signed value for angle of RoboTrike
+Laser DB ? ; 8-bit value for laser status of RoboTrike
 
 DATA    ENDS
 
