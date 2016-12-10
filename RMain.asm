@@ -476,8 +476,8 @@ EndHandleKeyPress:
 SUB DI, OFFSET(CommandStringTable) ; modify previous address for display string table
 ADD DI, OFFSET(DisplayStringTable)
 MOV SI, CS:[DI]             ; get address for si
-;PUSH CS                     ; change to ES for Display
-;POP ES
+PUSH CS                     ; change to ES for Display
+POP ES
 CALL Display
 
 RET

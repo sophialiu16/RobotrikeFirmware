@@ -25,5 +25,8 @@ STATUS_NUM            EQU 5 ; number of expected characters from motor unit
 ; other constants
 BAUD_9600             EQU 14 ; baud rate table index for rate of 9600
 NO_PARITY             EQU 0  ; parity table index for no parity
+EVEN_PARITY           EQU 2
+BAUD_110              EQU 2
+BAUD_56000            EQU 17
 
 CARRIAGE_RETURN       EQU 13 ; carriage return character
