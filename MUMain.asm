@@ -157,29 +157,29 @@ JE HaveStateError        ; if in error state, enqueue parser error event
 
 ;constantly send status over
 sendStatus:
-MOV BYTE PTR CS:[SI], 'S'         ; send motor status over serial to remote
+;MOV BYTE PTR CS:[SI], 'S'         ; send motor status over serial to remote
 
-CALL GetMotorSpeed    ; get current motor speed
-MOV CS:[SI + 1], AH        ; send over 
-MOV CS:[SI + 2], AL
+;CALL GetMotorSpeed    ; get current motor speed
+;MOV CS:[SI + 1], AH        ; send over 
+;MOV CS:[SI + 2], AL
 
-CALL GetMotorDirection
-MOV CS:[SI + 3], AH
-MOV CS:[SI + 4], AL
+;CALL GetMotorDirection
+;MOV CS:[SI + 3], AH
+;MOV CS:[SI + 4], AL
 
-CALL GetLaser
-MOV CS:[SI + 5], AL
+;CALL GetLaser
+;MOV CS:[SI + 5], AL
 
-MOV BYTE PTR CS:[SI + 6], CARRIAGE_RETURN
-MOV BYTE PTR CS:[SI + 7], ASCII_NULL
-MOV CX, 7
-CALL SerialPutStringNum
+;MOV BYTE PTR CS:[SI + 6], CARRIAGE_RETURN
+;MOV BYTE PTR CS:[SI + 7], ASCII_NULL
+;MOV CX, 7
+;CALL SerialPutStringNum
 
 JMP EndHandleReceivedChar
 
 HaveStateError:
-MOV AH, PARSER_ERROR ; store event constant to enqeue error event
-CALL EnqueueEvent    ; enqueue parser error
+;MOV AH, PARSER_ERROR ; store event constant to enqeue error event
+;CALL EnqueueEvent    ; enqueue parser error
 ;JMP EndHandleReceivedChar
 
 EndHandleReceivedChar:
@@ -219,12 +219,12 @@ HandleReceivedChar	ENDP
 HandleRemoteError       PROC        NEAR
 
 ; send over the error
-MOV BYTE PTR CS:[SI], 'E'                   ; send error over
-MOV BYTE PTR CS:[SI + 1], AH                ; send error constant 
-MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
-MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
-MOV CX, 3
-CALL SerialPutStringNum            ; send error string over serial
+;MOV BYTE PTR CS:[SI], 'E'                   ; send error over
+;MOV BYTE PTR CS:[SI + 1], AH                ; send error constant 
+;MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
+;MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
+;MOV CX, 3
+;CALL SerialPutStringNum            ; send error string over serial
 
 RET
 HandleRemoteError	ENDP
@@ -249,9 +249,12 @@ BadEvent	ENDP
 
 MUEventTable    LABEL    WORD
   ; DW    Address of function, IP
-  	DW    OFFSET(HandleRemoteError)  ; serial lsr error
-    DW    OFFSET(HandleRemoteError)  ; parser error (from motor unit)
-    DW    OFFSET(HandleRemoteError)  ; serial error (from motor unit)
+    DW    OFFSET(HandleRemoteError)  ; overrun error
+    DW    OFFSET(HandleRemoteError)  ; parity error (from remote unit)
+    DW    OFFSET(HandleRemoteError)  ; framing error (from remote unit)
+    DW    OFFSET(HandleRemoteError)  ; break error (from remote unit)
+  	DW    OFFSET(HandleRemoteError)  ; parser error (from remote unit)
+    DW    OFFSET(HandleRemoteError)  ; motor serial error (from motor unit)
     DW    OFFSET(HandleRemoteError)  ; serial output error
   	DW    OFFSET(BadEvent)           ; key event
     DW    OFFSET(HandleReceivedChar) ; serial received event
