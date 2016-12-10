@@ -11,8 +11,6 @@ NAME SERIAL
 ;     for the robotrike. It enqueues errors and received data, and outputs to the
 ;     serial port via a transmit queue.
 ; Public functions:
-;     SerialPutString        - Outputs a string to the transmit queue through
-;                              SerialPutChar. Enqueues error if unable to.
 ;     SerialPutChar          - Outputs a character to the transmit queue and
 ;                                 resets CF. Sets CF if the queue is full.
 ;     SetSerialBaud          - Sets the serial baud rate.
@@ -30,15 +28,12 @@ NAME SERIAL
 ;
 ; Revision History: 11/17/16 Sophia Liu       initial revision
 ;                   11/19/16 Sophia Liu       updated comments
-;                   12/02/16 Sophia Liu       fixed critical code
-;                   12/04/16 Sophia Liu       added SerialPutString
 
 ; include files for constants and queue structure
 $INCLUDE(serial.inc)
 $INCLUDE(events.inc)
 $INCLUDE(inter.inc)
 $INCLUDE(queue.inc)
-$INCLUDE(rmain.inc)
 $INCLUDE(converts.inc)
 
 CGROUP  GROUP   CODE
@@ -56,154 +51,140 @@ EXTRN   Dequeue:NEAR
 EXTRN   Enqueue:NEAR
 EXTRN   EnqueueEvent:NEAR
 
+
 ; SerialPutString
 ;
 ;
 ; Description: Sends a null-terminated command string to the serial port by
-;     sending one character at a time. Takes a pointer to the string as an
-;     argument.
+; sending one character at a time. Takes a pointer to the string as an
+; argument.
 ;
 ; Operation: Loops through the string until a null character is reached and
-;     calls SerialPutChar for each character. If SerialPutChar returns an error,
-;     the character is retried up to ATTEMPT_OUTPUT_CHAR times until an
-;     error is enqueued in the event queue.
+; calls SerialPutChar for each character. If SerialPutChar returns an error,
+; the character is retried up to ATTEMPT_OUTPUT_CHAR times until an
+; error is enqueued in the event queue.
 ;
-; Arguments:         String (CS:SI) to be outputted to the serial port.
-; Return Values:     None.
+; Arguments: String (CS:SI) to be outputted to the serial port.
+; Return Values: None.
 ;
-; Local Variables:   None.
-; Shared Variables:  None.
-; Global Variables:  None.
+; Local Variables: None.
+; Shared Variables: None.
+; Global Variables: None.
 ;
-; Input:             None.
-; Output:            None.
+; Input: None.
+; Output: None.
 ;
-; Error Handling:    Attempts to output a character uppt o ATTEMPT_OUTPUT_CHAR
-;                    times if SerialPutChar returns an error.
-; Algorithms:        None.
-; Data Structures:   None.
+; Error Handling: Attempts to output a character uppt o ATTEMPT_OUTPUT_CHAR
+; times if SerialPutChar returns an error.
+; Algorithms: None.
+; Data Structures: None.
 ;
-; Known Bugs:        None.
-; Limitations:       None.
+; Known Bugs: None.
+; Limitations: None.
 ; Registers changed: SI, BX, AX
-; Stack depth:       1 word.
+; Stack depth: 1 word.
 ;
-; Revision History: 11/29/16   Sophia Liu      initial revision
-;                   12/04/16   Sophia Liu      updated comments
-
-SerialPutString       PROC        NEAR
-                      PUBLIC      SerialPutString
+; Revision History: 11/29/16 Sophia Liu initial revision
+; 12/04/16 Sophia Liu updated comments
+SerialPutString PROC NEAR
+PUBLIC SerialPutString
 PutCharLoop:
 CMP BYTE PTR CS:[SI], ASCII_NULL
-JE SerialPutStringEnd         ; if the character is ascii null, done with string
-;JNE PutCharLoopBody          ; otherwise, send character
-
+JE SerialPutStringEnd ; if the character is ascii null, done with string
+;JNE PutCharLoopBody ; otherwise, send character
 PutCharLoopBody:
-MOV BX, ATTEMPT_OUTPUT_CHAR   ; set counter for attempting to output char
-MOV AL, BYTE PTR CS:[SI]      ; put char in AL as argument for SerialPutChar
-
+MOV BX, ATTEMPT_OUTPUT_CHAR ; set counter for attempting to output char
+MOV AL, BYTE PTR CS:[SI] ; put char in AL as argument for SerialPutChar
 PutChar:
-PUSH SI                       ; save string address
-CALL SerialPutChar            ; attempt to output character
-POP SI                        ; restore string address
-JC SerialPutCharError         ; if carry flag is set, queue is full and cannot output
-;JNC NextChar                 ; if carry flag is not set, outputted, can move on
-
+PUSH SI ; save string address
+CALL SerialPutChar ; attempt to output character
+POP SI ; restore string address
+JC SerialPutCharError ; if carry flag is set, queue is full and cannot output
+;JNC NextChar ; if carry flag is not set, outputted, can move on
 NextChar:
-INC SI                        ; move on to next address for next char in string
-JMP PutCharLoop               ; loop back to try to output next character
-
+INC SI ; move on to next address for next char in string
+JMP PutCharLoop ; loop back to try to output next character
 SerialPutCharError:
-DEC BX                        ; count down output error counter
+DEC BX ; count down output error counter
 CMP BX, 0
-JE EnqueueError               ; if have counted down to 0, give up and enqueue and error
-JNE PutChar                   ; otherwise, try outputting the character again
-
+JE EnqueueError ; if have counted down to 0, give up and enqueue and error
+JNE PutChar ; otherwise, try outputting the character again
 EnqueueError:
-MOV AH, SERIAL_OUTPUT_ERROR  ; store serial output error constant
-CALL EnqueueEvent            ; enqueue a serial output error
-;JMP SerialPutStringEnd      ; can end now
-
+MOV AH, SERIAL_OUTPUT_ERROR ; store serial output error constant
+CALL EnqueueEvent ; enqueue a serial output error
+;JMP SerialPutStringEnd ; can end now
 SerialPutStringEnd:
 RET
-SerialPutString	ENDP
-
+SerialPutString ENDP
 ; SerialPutStringNum
 ;
 ;
 ; Description: Sends a null-terminated command string to the serial port by
-;     sending one character at a time. Takes a pointer to the string as an
-;     argument.
+; sending one character at a time. Takes a pointer to the string as an
+; argument.
 ;
 ; Operation: Loops through the string until a null character is reached and
-;     calls SerialPutChar for each character. If SerialPutChar returns an error,
-;     the character is retried up to ATTEMPT_OUTPUT_CHAR times until an
-;     error is enqueued in the event queue.
+; calls SerialPutChar for each character. If SerialPutChar returns an error,
+; the character is retried up to ATTEMPT_OUTPUT_CHAR times until an
+; error is enqueued in the event queue.
 ;
-; Arguments:         String (CS:SI) to be outputted to the serial port,
-;                    CX number of characters to output
-; Return Values:     None.
+; Arguments: String (CS:SI) to be outputted to the serial port,
+; CX number of characters to output
+; Return Values: None.
 ;
-; Local Variables:   None.
-; Shared Variables:  None.
-; Global Variables:  None.
+; Local Variables: None.
+; Shared Variables: None.
+; Global Variables: None.
 ;
-; Input:             None.
-; Output:            None.
+; Input: None.
+; Output: None.
 ;
-; Error Handling:    Attempts to output a character uppt o ATTEMPT_OUTPUT_CHAR
-;                    times if SerialPutChar returns an error.
-; Algorithms:        None.
-; Data Structures:   None.
+; Error Handling: Attempts to output a character uppt o ATTEMPT_OUTPUT_CHAR
+; times if SerialPutChar returns an error.
+; Algorithms: None.
+; Data Structures: None.
 ;
-; Known Bugs:        None.
-; Limitations:       None.
+; Known Bugs: None.
+; Limitations: None.
 ; Registers changed: SI, BX, AX, DI
-; Stack depth:       1 word.
+; Stack depth: 1 word.
 ;
-; Revision History: 11/29/16   Sophia Liu      initial revision
-;                   12/04/16   Sophia Liu      updated comments
-
-SerialPutStringNum       PROC        NEAR
-                      PUBLIC      SerialPutStringNum
+; Revision History: 11/29/16 Sophia Liu initial revision
+; 12/04/16 Sophia Liu updated comments
+SerialPutStringNum PROC NEAR
+PUBLIC SerialPutStringNum
 MOV DI, 0
 PutCharLoop2:
 CMP DI, CX
-JGE SerialPutStringEnd2         ; if the character is ascii null, done with string
-;JL PutCharLoopBody2          ; otherwise, send character
-
+JGE SerialPutStringEnd2 ; if the character is ascii null, done with string
+;JL PutCharLoopBody2 ; otherwise, send character
 PutCharLoopBody2:
-MOV BX, ATTEMPT_OUTPUT_CHAR   ; set counter for attempting to output char
-MOV AL, BYTE PTR CS:[SI]      ; put char in AL as argument for SerialPutChar
-
+MOV BX, ATTEMPT_OUTPUT_CHAR ; set counter for attempting to output char
+MOV AL, BYTE PTR CS:[SI] ; put char in AL as argument for SerialPutChar
 PutChar2:
-PUSH SI                       ; save string address
+PUSH SI ; save string address
 PUSH DI
-CALL SerialPutChar            ; attempt to output character
+CALL SerialPutChar ; attempt to output character
 POP DI
-POP SI                        ; restore string address
-JC SerialPutCharError2         ; if carry flag is set, queue is full and cannot output
-;JNC NextChar2                 ; if carry flag is not set, outputted, can move on
-
+POP SI ; restore string address
+JC SerialPutCharError2 ; if carry flag is set, queue is full and cannot output
+;JNC NextChar2 ; if carry flag is not set, outputted, can move on
 NextChar2:
-INC SI                        ; move on to next address for next char in string
+INC SI ; move on to next address for next char in string
 INC DI
-JMP PutCharLoop2               ; loop back to try to output next character
-
+JMP PutCharLoop2 ; loop back to try to output next character
 SerialPutCharError2:
-DEC BX                        ; count down output error counter
+DEC BX ; count down output error counter
 CMP BX, 0
-JE EnqueueError2               ; if have counted down to 0, give up and enqueue and error
-JNE PutChar2                   ; otherwise, try outputting the character again
-
+JE EnqueueError2 ; if have counted down to 0, give up and enqueue and error
+JNE PutChar2 ; otherwise, try outputting the character again
 EnqueueError2:
-MOV AH, SERIAL_OUTPUT_ERROR  ; store serial output error constant
-CALL EnqueueEvent            ; enqueue a serial output error
-;JMP SerialPutStringEnd2      ; can end now
-
+MOV AH, SERIAL_OUTPUT_ERROR ; store serial output error constant
+CALL EnqueueEvent ; enqueue a serial output error
+;JMP SerialPutStringEnd2 ; can end now
 SerialPutStringEnd2:
 RET
-SerialPutStringNum	ENDP
+SerialPutStringNum ENDP
 
 ; SerialPutChar
 ;
@@ -245,13 +226,9 @@ SerialPutStringNum	ENDP
 ;
 ; Revision History: 11/14/16   Sophia Liu      initial revision
 ;                   11/19/16   Sophia Liu      updated comments
-;                   12/02/16   Sophia Liu      handle critical code
 
 SerialPutChar   PROC        NEAR
                 PUBLIC      SerialPutChar
-
-PUSHF                    ; save flags in order to disable interrupts
-CLI                      ; disable interrupts for critical code
 
 MOV SI, OFFSET(TxQueue) ; pass in TxQueue address of queue for queue functions
 CALL QueueFull          ; check if TxQueue is full
@@ -285,7 +262,6 @@ TxQueueFull:
 STC                   ; TxQueue is full, set carry flag to 1
 
 SerialPutCharDone:
-POPF                      ; restore interrupt flag, end of critical code
 RET
 SerialPutChar	ENDP
 
@@ -536,64 +512,62 @@ ModemStatus	ENDP
 ;
 ; Known Bugs:       None.
 ; Limitations:      None.
-; Registers changed: AX, DX, BX
+; Registers changed: AX, DX
 ; Stack depth:       0 words.
 ;
 ; Revision History: 11/14/16   Sophia Liu      initial revision
 ;                   11/20/16   Sophia Liu      updated comments
-;                   12/09/16   Sophia Liu      check for specific LSR errors
 
 LineStatus   PROC        NEAR
 
-MOV DX, SERIAL_LSR         ; access serial line status register
-IN AL, DX                  ; get serial line status register value
-MOV BL, AL                 ; store lsr value
+MOV DX, SERIAL_LSR ; access serial line status register
+IN AL, DX ; get serial line status register value
+MOV BL, AL ; store lsr value
 
 CheckOverrunError:
-AND AL, LSR_OVERRUN_ERROR  ; mask for overrun error bit
-JZ  CheckParityError       ; if no overrun error, check for next error
-; JNZ OverrunError         ; otherwise enqueue error
+AND AL, LSR_OVERRUN_ERROR ; mask for overrun error bit
+JZ CheckParityError ; if no overrun error, check for next error
+; JNZ OverrunError ; otherwise enqueue error
 
 OverrunError:
-MOV AH, OVERRUN_ERROR      ; store overrun error event constant to be enqueued
-CALL EnqueueEvent          ; enqueue error event
-; JMP CheckParityError     ; proceed to check for next error
+MOV AH, OVERRUN_ERROR ; store overrun error event constant to be enqueued
+CALL EnqueueEvent ; enqueue error event
+; JMP CheckParityError ; proceed to check for next error
 
 CheckParityError:
-MOV AL, BL                 ; get original lsr value
-AND AL, LSR_PARITY_ERROR   ; mask for parity error bit
-JZ CheckFramingError       ; if no parity error, check for next error
-; JNZ ParityError          ; else enqueue error
+MOV AL, BL ; get original lsr value
+AND AL, LSR_PARITY_ERROR ; mask for parity error bit
+JZ CheckFramingError ; if no parity error, check for next error
+; JNZ ParityError ; else enqueue error
 
 ParityError:
-MOV AH, PARITY_ERROR       ; store parity error event constant to be enqueued
-CALL EnqueueEvent          ; enqueue error event
-; JMP CheckFramingError    ; proceed to next error
+MOV AH, PARITY_ERROR ; store parity error event constant to be enqueued
+CALL EnqueueEvent ; enqueue error event
+; JMP CheckFramingError ; proceed to next error
 
 CheckFramingError:
-MOV AL, BL                  ; get original lsr value
-AND AL, LSR_FRAMING_ERROR   ; mask for framing error bit
-JZ CheckBreakError          ; if no framing error, check for next error
-; JNZ FramingError          ; else enqueue error
+MOV AL, BL ; get original lsr value
+AND AL, LSR_FRAMING_ERROR ; mask for framing error bit
+JZ CheckBreakError ; if no framing error, check for next error
+; JNZ FramingError ; else enqueue error
 
 FramingError:
-MOV AH, FRAMING_ERROR       ; store framing error event constant to be enqueued
-CALL EnqueueEvent           ; enqueue error event
-; JMP CheckBreakError       ; proceed to next error
+MOV AH, FRAMING_ERROR ; store framing error event constant to be enqueued
+CALL EnqueueEvent ; enqueue error event
+; JMP CheckBreakError ; proceed to next error
 
 CheckBreakError:
-MOV AL, BL                  ; get original lsr value
-AND AL, LSR_BREAK_ERROR     ; mask for framing error bit
-JZ EndLineStatus            ; if no framing error, can end
-; JNZ BreakError            ; else enqueue error
+MOV AL, BL ; get original lsr value
+AND AL, LSR_BREAK_ERROR ; mask for framing error bit
+JZ EndLineStatus ; if no framing error, can end
+; JNZ BreakError ; else enqueue error
 
 BreakError:
-MOV AH, BREAK_ERROR         ; store framing error event constant to be enqueued
-CALL EnqueueEvent           ; enqueue error event
-; JMP EndLineStatus         ; done with errors, can end
+MOV AH, BREAK_ERROR ; store framing error event constant to be enqueued
+CALL EnqueueEvent ; enqueue error event
+; JMP EndLineStatus ; done with errors, can end
 
 EndLineStatus:
-RET
 LineStatus	ENDP
 
 ; TransmitterEmpty

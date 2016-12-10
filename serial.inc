@@ -17,6 +17,8 @@ KICKSTART_OFF      EQU 0 ; value indicating no kickstart is needed
 KICKSTART_ON       EQU 1 ; value indicating kickstart is needed to reactivate
                          ;     transmit interrupts
 
+ATTEMPT_OUTPUT_CHAR   EQU 10 ; number of times will attempt to output char
+                             ;     to serial before giving up with error
 ; serial constants
 
 ; Line Status Register (LSR) - provides information to the CPU concerning the

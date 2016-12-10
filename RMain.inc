@@ -12,8 +12,7 @@
 ;     12/04/2016 Sophia Liu    updated comments
 
 ; constants for parsing received characters
-ATTEMPT_OUTPUT_CHAR   EQU 10 ; number of times will attempt to output char
-                             ;     to serial before giving up with error
+
 
 ERROR_RX_STATE        EQU 0 ; state when receiving an error from the motor unit
 STATUS_STATE          EQU 1 ; state when receiving a status update from the motor unit

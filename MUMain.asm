@@ -46,16 +46,15 @@ EXTRN   InitSerial:NEAR
 EXTRN   SerialPutString:NEAR
 EXTRN   SerialPutStringNum:NEAR
 
-;EXTRN   InitEvent:NEAR
+EXTRN   InitEvent:NEAR
 EXTRN   EnqueueEvent:NEAR
-;EXTRN   DequeueEvent:NEAR
-;EXTRN   CheckCriticalErrorFlag:NEAR
+EXTRN   DequeueEvent:NEAR
+EXTRN   CheckCriticalErrorFlag:NEAR
 
 EXTRN   GetMotorSpeed:NEAR
 EXTRN   GetMotorDirection:NEAR
 EXTRN   GetLaser:NEAR
 
-EXTRN   SerialIOTest:NEAR 
 
 START:
 
@@ -86,15 +85,13 @@ MOV     BX, NO_PARITY           ; store parity index to initialize serial
 MOV     CX, BAUD_9600           ; store baud rate index to initialize serial
 CALL    InitSerial              ; initialize serial
 
-;CALL    InitEvent               ; initialize event queue
+CALL    InitEvent               ; initialize event queue
 
 STI                             ; allow interrupts
 
-CALL    SerialIOTest            ; run the serial I/O tests
-
 
 EventLoop:                  ; infinite loop for running events
-;CALL DequeueEvent           ; attempt to dequeue an event from the event queue
+CALL DequeueEvent           ; attempt to dequeue an event from the event queue
 CMP AX, NO_EVENT            ; check if anything was dequeued
 JE EventLoopEnd             ; if the no event value is returned, no event to do, end
 ;JNE ProcessEvent           ; else, process the dequeued event
@@ -106,7 +103,7 @@ MOV CX, CS:MUEventTable[BX] ; get function from call table for current event
 CALL CX                     ; call correct function to deal with event
 
 CheckCriticalError:
-;CALL CheckCriticalErrorFlag ; check for a critical error
+CALL CheckCriticalErrorFlag ; check for a critical error
 JNC EventLoopEnd            ; if the carry flag is not set, no critical error, loop
 ;JC CriticalError           ; if the carry flag is set, there is a critical error
 
@@ -157,29 +154,29 @@ JE HaveStateError        ; if in error state, enqueue parser error event
 
 ;constantly send status over
 sendStatus:
-;MOV BYTE PTR CS:[SI], 'S'         ; send motor status over serial to remote
+MOV BYTE PTR CS:[SI], 'S'         ; send motor status over serial to remote
 
-;CALL GetMotorSpeed    ; get current motor speed
-;MOV CS:[SI + 1], AH        ; send over 
-;MOV CS:[SI + 2], AL
+CALL GetMotorSpeed    ; get current motor speed
+MOV CS:[SI + 1], AH        ; send over 
+MOV CS:[SI + 2], AL
 
-;CALL GetMotorDirection
-;MOV CS:[SI + 3], AH
-;MOV CS:[SI + 4], AL
+CALL GetMotorDirection
+MOV CS:[SI + 3], AH
+MOV CS:[SI + 4], AL
 
-;CALL GetLaser
-;MOV CS:[SI + 5], AL
+CALL GetLaser
+MOV CS:[SI + 5], AL
 
-;MOV BYTE PTR CS:[SI + 6], CARRIAGE_RETURN
-;MOV BYTE PTR CS:[SI + 7], ASCII_NULL
-;MOV CX, 7
-;CALL SerialPutStringNum
+MOV BYTE PTR CS:[SI + 6], CARRIAGE_RETURN
+MOV BYTE PTR CS:[SI + 7], ASCII_NULL
+MOV CX, 7
+CALL SerialPutStringNum
 
 JMP EndHandleReceivedChar
 
 HaveStateError:
-;MOV AH, PARSER_ERROR ; store event constant to enqeue error event
-;CALL EnqueueEvent    ; enqueue parser error
+MOV AH, PARSER_ERROR ; store event constant to enqeue error event
+CALL EnqueueEvent    ; enqueue parser error
 ;JMP EndHandleReceivedChar
 
 EndHandleReceivedChar:
@@ -219,12 +216,12 @@ HandleReceivedChar	ENDP
 HandleRemoteError       PROC        NEAR
 
 ; send over the error
-;MOV BYTE PTR CS:[SI], 'E'                   ; send error over
-;MOV BYTE PTR CS:[SI + 1], AH                ; send error constant 
-;MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
-;MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
-;MOV CX, 3
-;CALL SerialPutStringNum            ; send error string over serial
+MOV BYTE PTR CS:[SI], 'E'                   ; send error over
+MOV BYTE PTR CS:[SI + 1], AH                ; send error constant 
+MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
+MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
+MOV CX, 3
+CALL SerialPutStringNum            ; send error string over serial
 
 RET
 HandleRemoteError	ENDP
