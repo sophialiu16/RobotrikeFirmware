@@ -12,7 +12,7 @@ NAME TIMER
 ; Public functions: TimerEventHandler-Event handler for the timer interrupt.
 ;                       Calls the function to multiplex the LEDs.
 
-;                   InitTimer -Initialize the 80188 Timers.
+;                   InitTimer -Initialize the 80188 Timer.
 ; Local functions:
 ; Input:           None.
 ; Output:          None.

@@ -15,9 +15,12 @@ NAME RMAIN
 ;     fire a turret “laser.” The display shows current runtime information and
 ;     errors. The motor unit can also send back status to be displayed. The two
 ;     units communicate over a serial interface using a defined protocol.
+;
 ; Global Variables: None.
+;
 ; Inputs: Input is entered through an unlabeled 4x4 16 key keypad.
 ;     Through this keypad, the user can increase or decrease the speed, turn
+;
 ; Outputs: An 8-digit display consisting of 14 segments with right hand decimal
 ;     point per digit is used to display messages while the system in running.
 ;     These include status updates and error messages.
@@ -40,8 +43,8 @@ NAME RMAIN
 ;   ___________________________________________________________
 ;   |Show speed     |Show angle       | Show laser|	          |
 ;   ___________________________________________________________
-
-;  Command	         Action
+;
+; Command	         Action
 ; Increase Speed-	  Increases the RoboTrike speed by a set amount
 ; Decrease Speed-		Decreases the RoboTrike speed by a set amount
 ; Laser On-	        Turns the turret laser on
@@ -51,19 +54,30 @@ NAME RMAIN
 ; Forward- 	        Moves the RoboTrike forward at half speed.
 ; Reverse-     	    Sets the RoboTrike direction to 180 degrees
 ;                       (reverses the RoboTrike direction)
-; Increase angle -  Increases angle by 30 degrees (right)
-; Decrease angle -  Decreases angle by 30 degrees (left)
-
+; Increase angle-   Increases angle by 30 degrees (right)
+; Decrease angle-   Decreases angle by 30 degrees (left)
+; Stop-             Halts RoboTrike
+; Show Speed-       Display current speed
+; Show Angle-       Display current angle
+; Show laser-       Display current laser status
+;
 ; Command         	Display
-; Increase Speed- 	XXXX (new speed in hexadecimal)
-; Decrease Speed- 	XXXX (new speed in hexadecimal)
-; Laser On- 	      00001
-; Laser Off- 	      00000
-; Left-           	00XXX (new RoboTrike direction angle, 0 to 359)
-; Right-          	00XXX (new RoboTrike direction angle, 0 to 359)
-; Forward-          7FFF  (speed in hexadecimal)
-; Reverse-        	00XXX (new RoboTrike direction angle, 0 to 359)
-
+; Increase Speed- 	INC SP
+; Decrease Speed- 	DEC SP
+; Laser On- 	      LASER ON
+; Laser Off- 	      LASEROFF
+; Left-             LEFT
+; Right-          	RIGHT
+; Forward-          FORWARD
+; Reverse-        	REVERSE
+; Increase angle-   RIGHT 30
+; Decrease angle-   LEFT 30
+; Stop-             STOP
+; Show Speed-       XXXX - current speed in hex
+; Show Angle-       XXXXX - current direction in decimal (in degrees)
+; Show laser-       XXXXX - current status of laser in decimal - 0 if laser off
+;
+;
 ;     The user moves the RoboTrike manually using the keypad, shown above.
 ;     These are sent via the serial interface to the motor unit, which sends back
 ;     status information which is displayed along with the current information about
@@ -88,10 +102,11 @@ NAME RMAIN
 ; Special Notes: None
 ; Revision History:
 ;     12/04/16    Sophia Liu    Initial revision
+;     12/09/16    Sophia Liu    Update for displaying status, errors, and commands
 
 
 ; include file for constants
-$INCLUDE(RMain.inc)
+$INCLUDE(Main.inc)
 $INCLUDE(Events.inc)
 $INCLUDE(Converts.inc)
 $INCLUDE(Motors.inc)
@@ -125,7 +140,7 @@ EXTRN   CheckCriticalErrorFlag:NEAR
 
 EXTRN   Display:NEAR
 EXTRN   DisplayNum:NEAR
-EXTRN   DisplayHex:NEAR 
+EXTRN   DisplayHex:NEAR
 
 START:
 
@@ -193,14 +208,12 @@ HLT                         ; never executed (hopefully)
 ;     'E', [error const] for error and 'S', [speed high bit], [speed low bit],
 ;     [direction high bit], [direction low bit], [laser bit] for status. It
 ;     enqueues the error if an error has been received, and updates the speed,
-;     direction, or laser shared status variables, expecting that only one
-;     has been updated, and displays the last updated one.
+;     direction, and laser shared status variables.
 ;
 ; Operation: Stores the state in ReceivedState. Checks for error or status char,
 ;     then proceeds without error checking.
 ;     Enqueues the error if an error has been received, and updates the speed,
-;     direction, or laser shared status variables, expecting that only one
-;     has been updated, and displays the last updated one.
+;     direction, and laser shared status variables.
 ;
 ; Arguments:         Character c received (AL). Characters expected to be in order
 ;                    'E', [error const] for error and 'S', [speed high bit],
@@ -210,12 +223,18 @@ HLT                         ; never executed (hopefully)
 ;
 ; Local Variables:   None.
 ; Shared Variables:
-;    StatusString (R/W) - string containing updated status (speed, angle, laser)
-;    StatusStringPos (R/W) - word containing index into status string
-;    ReceivedState (R/W)- byte containing state for received char
-;    Speed (R/W) - 16-bit unsigned value for speed of RoboTrike
-;    Angle (R/W)- 16-bit signed value for angle of RoboTrike
-;    Laser (R/W)- 8-bit value for laser status of RoboTrike
+;    StatusString (R/W) - String containing the updated status, in the form
+;        [speed high bit], [speed low bit], [direction high bit],
+;        [direction low bit], [laser bit]
+;    StatusStringPos (R/W) - 16-bit value containing the index into the
+;        status string.
+;    ReceivedState (R/W)- 8-bit value containing the state for the received char
+;    Speed (R/W) - 16-bit unsigned value containing the current speed of
+;        the RoboTrike
+;    Angle (R/W)- 16-bit signed value containing the current angle of
+;        the RoboTrike.
+;    Laser (R/W)- 8-bit value containing the current laser status of RoboTrike.
+;
 ; Global Variables:  None.
 ;
 ; Input:             None.
@@ -231,7 +250,7 @@ HLT                         ; never executed (hopefully)
 ; Stack depth:       0 words.
 ;
 ; Revision History: 11/29/16   Sophia Liu      initial revision
-;                   12/04/16   Sophia Liu      updated comments
+;                   12/10/16   Sophia Liu      updated comments
 
 HandleReceivedChar       PROC        NEAR
 
@@ -280,22 +299,22 @@ XCHG AH, AL
 MOV Angle, AX
 
 ; update laser
-ADD SI, 2 ; 
+ADD SI, 2
 MOV AL, [SI]
-MOV Laser, AL 
+MOV Laser, AL
 JMP EndHandleReceivedChar
 
 CheckOtherState: ; check for S and E keywords
-CMP AL, 'E'
+CMP AL, 'E'      ; check for error token
 JNE CheckOtherStateStatus ; if have not received an error character, check status
-;JE ReceivedErrorChar ; else received an error character, go to error "state"
+;JE ReceivedErrorChar     ; else received an error character, go to error "state"
 
 ReceivedErrorChar:
 MOV ReceivedState, ERROR_RX_STATE
 JMP EndHandleReceivedChar
 
 CheckOtherStateStatus:
-CMP AL, 'S'
+CMP AL, 'S'               ; check for status token
 JNE EndHandleReceivedChar
 ; JE ReceivedStatusChar
 
@@ -375,12 +394,17 @@ HandleSerialError	ENDP
 ;
 ; Local Variables:   None.
 ; Shared Variables:
-;    StatusString (W) - string containing updated status (speed, angle, laser)
-;    StatusStringPos (W) - word containing index into status string
-;    ReceivedState (W)- byte containing state for received char
-;    Speed (W) - 16-bit unsigned value for speed of RoboTrike
-;    Angle (W)- 16-bit signed value for angle of RoboTrike
-;    Laser (W)- 8-bit value for laser status of RoboTrike
+;    StatusString (W) - String containing the updated status, in the form
+;        [speed high bit], [speed low bit], [direction high bit],
+;        [direction low bit], [laser bit]
+;    StatusStringPos (W) - 16-bit value containing the index into the
+;        status string.
+;    ReceivedState (W)- 8-bit value containing the state for the received char
+;    Speed (W) - 16-bit unsigned value containing the current speed of
+;        the RoboTrike
+;    Angle (W)- 16-bit signed value containing the current angle of
+;        the RoboTrike.
+;    Laser (W)- 8-bit value containing the current laser status of RoboTrike.
 ;
 ; Global Variables:  None.
 ;
@@ -404,7 +428,7 @@ MOV StatusStringPos, 0        ; set to 0 status chars received
 MOV ReceivedState, IDLE_STATE ; set received char state to idle
 MOV Speed, 0                  ; set speed var to 0
 MOV Angle, STRAIGHT           ; set angle to straight ahead
-MOV Laser, LASER_OFF ; set laser to off
+MOV Laser, LASER_OFF          ; set laser to off
 
 RET
 InitRMain	ENDP
@@ -413,13 +437,16 @@ InitRMain	ENDP
 ; HandleKeyPress
 ;
 ;
-; Description: Outputs a string with the corresponding command
-;     from the keypad to the serial port.
+; Description: Displays the status if a display status key has been pressed.
+;     Otherwise outputs a string with the corresponding command string over
+;     serial and displays a command message.
 ;     Takes the keypad key pressed value (AL) as an argument.
 ;
-; Operation: Gets the command string for the keypress from a table of strings.
-;     and if it is a valid string, it calls SerialPutString(str) to output it
-;     to the serial port.
+; Operation: Checks if one of the status keys have been pressed, and displays
+;     the keypad if so. Otherwise gets the command string for the keypress from
+;     a table of strings and if it is a valid key, it attempts to output it
+;     to the serial port. Then gets the display string for that key press
+;     and displays it.
 ;
 ; Arguments:         key pressed (AL)
 ; Return Values:     None.
@@ -437,21 +464,22 @@ InitRMain	ENDP
 ;
 ; Known Bugs:        None.
 ; Limitations:       None.
-; Registers changed: DI, ES, SI
+; Registers changed: AX, DI, ES, CX, SI
 ; Stack depth:       0 words.
 ;
 ; Revision History: 11/29/16   Sophia Liu      initial revision
-;                   12/04/16   Sophia Liu      updated comments
+;                   12/09/16   Sophia Liu      updated keys and display
+
 HandleKeyPress       PROC        NEAR
                      PUBLIC      HandleKeyPress
-; check for show speed and show angle 
+; check for show speed and show angle
 CheckShowSpeed:
-CMP AL, 0E3H ; show speed 
+CMP AL, 0E3H ; show speed
 JNE CheckShowAngle
 ;JE ShowSpeed
 
 ShowSpeed:
-MOV AX, Speed 
+MOV AX, Speed
 CALL DisplayHex
 JMP ReturnHandleKeyPress
 
@@ -460,26 +488,26 @@ CMP AL, 0D3H
 JNE CheckShowLaser
 ;JE ShowSpeed
 
-ShowAngle: 
-MOV AX, Angle 
-CALL DisplayNum 
-JMP ReturnHandleKeyPress 
+ShowAngle:
+MOV AX, Angle
+CALL DisplayNum
+JMP ReturnHandleKeyPress
 
 CheckShowLaser:
-CMP AL, 0B3H 
+CMP AL, 0B3H
 JNE InitScanKeyLookup
-;JE ShowLaser 
+;JE ShowLaser
 
-ShowLaser: 
-XOR AH, AH 
+ShowLaser:
+XOR AH, AH
 MOV AL, Laser
-CALL DisplayNum 
+CALL DisplayNum
 JMP ReturnHandleKeyPress
 
 
 InitScanKeyLookup:                      ;setup for the table lookup
 MOV DI, OFFSET(ScanCodeTable)           ;ES:DI points at table
-PUSH CS                                             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;?
+PUSH CS
 POP ES
 MOV CX, NO_SCAN_CODES                   ;CX is the number of table entries
 
@@ -529,11 +557,11 @@ HandleKeyPress	ENDP
 EventTable    LABEL    WORD
   ; DW    Address of function, IP
     DW    OFFSET(HandleSerialError)  ; overrun error
-    DW    OFFSET(HandleSerialError)  ; parity error (from remote unit)
-    DW    OFFSET(HandleSerialError)  ; framing error (from remote unit)
-    DW    OFFSET(HandleSerialError)  ; break error (from remote unit)
-  	DW    OFFSET(HandleSerialError)  ; parser error (from remote unit)
-    DW    OFFSET(HandleSerialError)  ; motor serial error (from motor unit)
+    DW    OFFSET(HandleSerialError)  ; parity error
+    DW    OFFSET(HandleSerialError)  ; framing error
+    DW    OFFSET(HandleSerialError)  ; break error
+  	DW    OFFSET(HandleSerialError)  ; parser error
+    DW    OFFSET(HandleSerialError)  ; motor serial error
     DW    OFFSET(HandleSerialError)  ; serial output error
   	DW    OFFSET(HandleKeyPress)     ; key event
     DW    OFFSET(HandleReceivedChar) ; serial received event
@@ -559,7 +587,7 @@ EventTable    LABEL    WORD
         %TABENT(070H, 'O', 13)         ;laser off
         %TABENT(0E1H, 'D-90', 13)      ;turn left
         %TABENT(0D1H, 'S32767', 13)    ;forward at half speed
-        %TABENT(0B1H, 'D180', 13)      ;reverse at half speed
+        %TABENT(0B1H, 'D180', 13)      ;reverse
         %TABENT(071H, 'D90', 13)       ;turn right
         %TABENT(0E2H, 'D30', 13)       ;increase angle (right 30 degrees)
         %TABENT(0D2H, 'D-30', 13)      ;decrease angle (left 30 degrees)
@@ -601,10 +629,11 @@ CommandStringTable  LABEL	BYTE
 
 ; DisplayTable
 ;
-; Description:      Display table for key commands
+; Description:      Display table for key commands. Contains the strings to be
+;                   displayed given the key pressed.
 ;
 ; Author:           Sophia Liu
-; Last Modified:    Dec 9, 2016
+; Last Modified:    Dec 10, 2016
 %*DEFINE(DISTABLE) (
   %SET(EntryNo, 0)
   %TABENT('INC SP')         ;increase speed
@@ -613,7 +642,7 @@ CommandStringTable  LABEL	BYTE
   %TABENT('LASEROFF')       ;laser off
   %TABENT('LEFT')           ;turn left
   %TABENT('FORWARD')        ;forward at half speed
-  %TABENT('REVERSE')        ;reverse at half speed
+  %TABENT('REVERSE')        ;reverse
   %TABENT('RIGHT')          ;turn right
   %TABENT('RIGHT 30')       ;increase angle (right 30 degrees)
   %TABENT('LEFT 30')        ;decrease angle (left 30 degrees)
@@ -641,19 +670,20 @@ DisplayStringTable  LABEL	BYTE
 
 ; ErrorTables
 ;
-; Description:      Tables for getting the error string.
+; Description:      Tables for getting the error string. Contains the strings
+;                   to be displayed given the error. Indexed by error constants.
 ;
 ; Author:           Sophia Liu
-; Last Modified:    Dec 9, 2016
+; Last Modified:    Dec 10, 2016
 %*DEFINE(ERRTABLE) (
   %SET(EntryNo, 0)
-	%TABENT('OVER ERR')
-  %TABENT('PART ERR')
-  %TABENT('FRM ERR')
-  %TABENT('BRK ERR')
-	%TABENT('PARS ERR')
-	%TABENT('MS ERR')
-	%TABENT('OC ERR')
+	%TABENT('OVER ERR')  ; overrun error
+  %TABENT('PART ERR')  ; parity error
+  %TABENT('FRM ERR')   ; framing error
+  %TABENT('BRK ERR')   ; break error
+	%TABENT('PARS ERR')  ; parser error
+	%TABENT('MS ERR')    ; motor serial error
+	%TABENT('OC ERR')    ; serial output error
 )
 
 %*DEFINE(TABENT(string))    (
@@ -677,18 +707,30 @@ ErrorStringTable  LABEL	BYTE
 
 CODE    ENDS
 
+; data segment
 DATA    SEGMENT PUBLIC  'DATA'
 
-StatusString    DB STATUS_NUM DUP (?) ; string containing updated status (speed, angle)
-StatusStringPos DW ? ; word containing index into status string
-ReceivedState   DB ? ; byte containing state for received char
-Speed           DW ? ; 16-bit unsigned value for speed of RoboTrike
-Angle           DW ? ; 16-bit signed value for angle of RoboTrike
-Laser DB ? ; 8-bit value for laser status of RoboTrike
+StatusString    DB STATUS_NUM DUP (?)
+               ; String containing the updated status, in the form
+               ;        [speed high bit], [speed low bit], [direction high bit],
+               ;        [direction low bit], [laser bit]
+
+StatusStringPos DW ? ; 16-bit value containing the index into the
+                     ;     status string
+
+ReceivedState   DB ? ; 8-bit value containing the state for the received char
+
+Speed           DW ? ; 16-bit unsigned value containing the current speed of
+                     ;     the RoboTrike
+
+Angle           DW ? ; 16-bit signed value containing the current angle of
+                     ;     the RoboTrike.
+
+Laser           DB ? ; 8-bit value containing the current laser status of RoboTrike
 
 DATA    ENDS
 
-;the stack
+; the stack
 STACK   SEGMENT STACK  'STACK'
 
         DB      80 DUP ('Stack ')       ;240 words
