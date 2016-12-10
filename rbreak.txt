@@ -1,0 +1,2 @@
+s 0 rmain.criticalerror & s 1 rmain.handleserialerror & s 2 rmain.handlereceivedchar 
+& s 4 rmain.sendcommand "r & d cs:si" & s 3 rmain.serialputstring
