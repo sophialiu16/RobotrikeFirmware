@@ -56,5 +56,5 @@ NUM_TOKEN_TYPES     EQU 13  ; number of token types
 TOKEN_MASK	   EQU	01111111B	;mask high bit of token
 
 ; other constants
-STATE_ERROR_VAL      EQU 1     ; return value for ParseSerialChar if there is a parsing error
-STATE_NO_ERROR       EQU 0     ; return value for ParseSerialChar if no parsing error
+ERROR_VAL      EQU 1     ; return value for ParseSerialChar if there is a parsing error
+NO_ERROR       EQU 0     ; return value for ParseSerialChar if no parsing error

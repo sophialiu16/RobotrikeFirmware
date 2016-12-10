@@ -128,6 +128,83 @@ SerialPutStringEnd:
 RET
 SerialPutString	ENDP
 
+; SerialPutStringNum
+;
+;
+; Description: Sends a null-terminated command string to the serial port by
+;     sending one character at a time. Takes a pointer to the string as an
+;     argument.
+;
+; Operation: Loops through the string until a null character is reached and
+;     calls SerialPutChar for each character. If SerialPutChar returns an error,
+;     the character is retried up to ATTEMPT_OUTPUT_CHAR times until an
+;     error is enqueued in the event queue.
+;
+; Arguments:         String (CS:SI) to be outputted to the serial port, 
+;                    CX number of characters to output 
+; Return Values:     None.
+;
+; Local Variables:   None.
+; Shared Variables:  None.
+; Global Variables:  None.
+;
+; Input:             None.
+; Output:            None.
+;
+; Error Handling:    Attempts to output a character uppt o ATTEMPT_OUTPUT_CHAR
+;                    times if SerialPutChar returns an error.
+; Algorithms:        None.
+; Data Structures:   None.
+;
+; Known Bugs:        None.
+; Limitations:       None.
+; Registers changed: SI, BX, AX, DI 
+; Stack depth:       1 word.
+;
+; Revision History: 11/29/16   Sophia Liu      initial revision
+;                   12/04/16   Sophia Liu      updated comments
+
+SerialPutStringNum       PROC        NEAR
+                      PUBLIC      SerialPutStringNum
+MOV DI, 0
+PutCharLoop2:
+CMP DI, CX  
+JGE SerialPutStringEnd2         ; if the character is ascii null, done with string
+;JL PutCharLoopBody2          ; otherwise, send character
+
+PutCharLoopBody2:
+MOV BX, ATTEMPT_OUTPUT_CHAR   ; set counter for attempting to output char
+MOV AL, BYTE PTR CS:[SI]      ; put char in AL as argument for SerialPutChar
+
+PutChar2:
+PUSH SI                       ; save string address
+PUSH DI 
+CALL SerialPutChar            ; attempt to output character
+POP DI 
+POP SI                        ; restore string address
+JC SerialPutCharError2         ; if carry flag is set, queue is full and cannot output
+;JNC NextChar2                 ; if carry flag is not set, outputted, can move on
+
+NextChar2:
+INC SI                        ; move on to next address for next char in string
+INC DI                         
+JMP PutCharLoop2               ; loop back to try to output next character
+
+SerialPutCharError2:
+DEC BX                        ; count down output error counter
+CMP BX, 0
+JE EnqueueError2               ; if have counted down to 0, give up and enqueue and error
+JNE PutChar2                   ; otherwise, try outputting the character again
+
+EnqueueError2:
+MOV AH, SERIAL_OUTPUT_ERROR  ; store serial output error constant
+CALL EnqueueEvent            ; enqueue a serial output error
+;JMP SerialPutStringEnd2      ; can end now
+
+SerialPutStringEnd2:
+RET
+SerialPutStringNum	ENDP
+
 ; SerialPutChar
 ;
 ;

@@ -1,0 +1,1 @@
+s 0 mumain.criticalerror & s 1 mumain.handlereceivedchar & s 2 mumain.handleremoteerror

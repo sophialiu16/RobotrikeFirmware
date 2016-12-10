@@ -44,6 +44,7 @@ EXTRN   InstallSerialHandler:NEAR
 EXTRN   InitSerialInt:NEAR
 EXTRN   InitSerial:NEAR
 EXTRN   SerialPutString:NEAR
+EXTRN   SerialPutStringNum:NEAR
 
 EXTRN   InitEvent:NEAR
 
@@ -54,6 +55,8 @@ EXTRN   CheckCriticalErrorFlag:NEAR
 EXTRN   GetMotorSpeed:NEAR
 EXTRN   GetMotorDirection:NEAR
 EXTRN   GetLaser:NEAR
+
+ 
 
 START:
 
@@ -88,6 +91,7 @@ CALL    InitEvent               ; initialize event queue
 ;CALL    InitMUMain              ; initialize remote main loop
 
 STI                             ; allow interrupts
+
 
 EventLoop:                  ; infinite loop for running events
 CALL DequeueEvent           ; attempt to dequeue an event from the event queue
@@ -147,28 +151,29 @@ HLT                         ; never executed (hopefully)
 HandleReceivedChar       PROC        NEAR
 
 CALL ParseSerialChar     ; call parser to deal with received characters
-CMP AX, STATE_ERROR_VAL  ; check if returned an error state in parser
+CMP AX, ERROR_VAL  ; check if returned an error state in parser
 JE HaveStateError        ; if in error state, enqueue parser error event
 ;JNE sendStatus          ; else no error, send status over to remote side
 
 ;constantly send status over
 sendStatus:
-MOV BYTE PTR [SI], 'S'         ; send motor status over serial to remote
+MOV BYTE PTR CS:[SI], 'S'         ; send motor status over serial to remote
 
 CALL GetMotorSpeed    ; get current motor speed
-MOV BYTE PTR [SI + 1], AH        ; send over 
-MOV BYTE PTR [SI + 2], AL
+MOV CS:[SI + 1], AH        ; send over 
+MOV CS:[SI + 2], AL
 
 CALL GetMotorDirection
-MOV BYTE PTR [SI + 3], AH
-MOV BYTE PTR [SI + 4], AL
+MOV CS:[SI + 3], AH
+MOV CS:[SI + 4], AL
 
 CALL GetLaser
-MOV BYTE PTR [SI + 5], AL
+MOV CS:[SI + 5], AL
 
-MOV BYTE PTR [SI + 6], CARRIAGE_RETURN
-MOV BYTE PTR [SI + 7], ASCII_NULL
-CALL SerialPutString
+MOV BYTE PTR CS:[SI + 6], CARRIAGE_RETURN
+MOV BYTE PTR CS:[SI + 7], ASCII_NULL
+MOV CX, 7
+CALL SerialPutStringNum
 
 JMP EndHandleReceivedChar
 
@@ -214,11 +219,12 @@ HandleReceivedChar	ENDP
 HandleRemoteError       PROC        NEAR
 
 ; send over the error
-MOV BYTE PTR [SI], 'E'                   ; send error over
-MOV BYTE PTR [SI + 1], AH                ; send error constant
-MOV BYTE PTR [SI + 2], CARRIAGE_RETURN   ; carriage return for parser
-MOV BYTE PTR [SI + 3], ASCII_NULL        ; ascii_null to terminate string
-CALL SerialPutString            ; send error string over serial
+MOV BYTE PTR CS:[SI], 'E'                   ; send error over
+MOV BYTE PTR CS:[SI + 1], AH                ; send error constant ;;;;;;;;;;;;;;;;;;;;;;;
+MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
+MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
+MOV CX, 3
+CALL SerialPutStringNum            ; send error string over serial
 
 RET
 HandleRemoteError	ENDP

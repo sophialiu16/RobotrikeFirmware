@@ -149,7 +149,7 @@ JNE NoError   ; if the state is not the error state, return non-error value
 ;JE HaveError ; otherwise, return error value
 
 HaveError:
-MOV AX, STATE_ERROR_VAL       ; return error value
+MOV AX, ERROR_VAL       ; return error value
 CALL resetStateValues   ; reset values for error
 JMP ParseSerialCharDone ; done with parsing character
 
@@ -162,7 +162,7 @@ endState:
 CALL resetStateValues
 
 finishNoError:
-MOV AX, STATE_NO_ERROR ; return non-error value of no error due to character
+MOV AX, NO_ERROR ; return non-error value of no error due to character
 
 ParseSerialCharDone:
 RET
