@@ -220,7 +220,7 @@ HandleRemoteError       PROC        NEAR
 
 ; send over the error
 MOV BYTE PTR CS:[SI], 'E'                   ; send error over
-MOV BYTE PTR CS:[SI + 1], AH                ; send error constant ;;;;;;;;;;;;;;;;;;;;;;;
+MOV BYTE PTR CS:[SI + 1], AH                ; send error constant 
 MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
 MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
 MOV CX, 3
