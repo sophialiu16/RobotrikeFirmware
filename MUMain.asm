@@ -272,7 +272,6 @@ HandleRemoteError       PROC        NEAR
 MOV BYTE PTR CS:[SI], 'E'                   ; send error over
 MOV BYTE PTR CS:[SI + 1], AH                ; send error constant
 MOV BYTE PTR CS:[SI + 2], CARRIAGE_RETURN   ; carriage return for parser
-;;;;;;;;;;MOV BYTE PTR CS:[SI + 3], ASCII_NULL        ; ascii_null to terminate string
 MOV CX, ERROR_CHAR_NUM                      ; number of characters to send
 CALL SerialPutStringNum            ; send error string over serial
 
