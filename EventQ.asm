@@ -7,14 +7,32 @@ NAME EVENTQ
 ;                                                                            ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Name of file: EventQ.asm
-; Description:
+;
+; Description: This file contains functions used to run the event queue.
+;              this included enqueueing, dequeueing, initializing, and checking
+;              the critical error flag.
+;
 ; Public functions:
-; Local functions:
+;    EnqueueEvent (event constant, value)- Sets critical error flag if queue
+;        is full. If it is not full, it enqueues the event.
+;
+;    DequeueEvent- Dequeues and returns an event, or a NO_EVENT constant if
+;        the queue is empty.
+;
+;    InitEvent - initializes the event queue and critical error flag.
+;
+;    CheckCriticalErrorFlag - Returns with the carry flag set if there is a
+;        critical error, and with the carry flag reset if there is not.
+;
+; Local functions: None.
+;
 ; Input:          None.
 ; Output:         None.
 ;
 ; Revision History: 12/02/16 Sophia Liu       initial revision
+;                   12/10/16 Sophia Liu       updated comments
 
+; include file for constants and queue structure
 $INCLUDE(Queue.inc)
 $INCLUDE(Events.inc)
 $INCLUDE(EventQ.inc)
@@ -44,7 +62,7 @@ EXTRN   Enqueue:NEAR
 ; Operation: Checks if the event queue is full. If it is, the CriticalErrorFlag
 ;            is set and the function returns. Otherwise, the event is enqueued.
 ;
-; Arguments:         event (AX - AH event constant, AL value), the event to enqueue
+; Arguments:         Event (AX - AH event constant, AL value), the event to enqueue
 ; Return Values:     None.
 ;
 ; Local Variables:   None.
@@ -64,8 +82,8 @@ EXTRN   Enqueue:NEAR
 ;
 ; Known Bugs:        Lose event if EventQueue is full
 ; Limitations:       None.
-; Registers changed:
-; Stack depth:
+; Registers changed: SI
+; Stack depth:       0 Words.
 ;
 ; Revision History: 11/29/16   Sophia Liu      initial revision
 
@@ -118,10 +136,11 @@ EnqueueEvent	ENDP
 ;
 ; Known Bugs:        None.
 ; Limitations:       None.
-; Registers changed:
-; Stack depth:
+; Registers changed: SI
+; Stack depth:       0 Words.
 ;
 ; Revision History: 11/29/16   Sophia Liu      initial revision
+
 DequeueEvent       PROC        NEAR
                    PUBLIC      DequeueEvent
 MOV SI, OFFSET(EventQueue) ; pass in event queue address to check if empty
@@ -171,7 +190,7 @@ DequeueEvent	ENDP
 ; Known Bugs:        None.
 ; Limitations:       None.
 ; Registers changed: SI, BL
-; Stack depth:
+; Stack depth:       0 words.
 ;
 ; Revision History: 11/29/16   Sophia Liu      initial revision
 
@@ -218,20 +237,20 @@ InitEvent	ENDP
 ; Stack depth:       0 words.
 ;
 ; Revision History: 12/02/16   Sophia Liu      initial revision
-;
+;                   12/10/16   Sophia Liu      updated comments
 CheckCriticalErrorFlag       PROC        NEAR
                              PUBLIC      CheckCriticalErrorFlag
-; return critical flag status
-CMP CriticalErrorFlag, CRITICAL_ERROR
-JE HaveCriticalError
-; JNE NoCriticalError
+
+CMP CriticalErrorFlag, CRITICAL_ERROR ; check if have critical error
+JE HaveCriticalError                  ; if there is, return with error
+; JNE NoCriticalError                 ; otherwise, return without error
 
 NoCriticalError:
-CLC      ; clear carry flag if there is no critical error
+CLC                             ; clear carry flag if there is no critical error
 JMP CheckCriticalErrorFlagEnd   ; can end now
 
 HaveCriticalError:
-STC      ; set carry flag if there is a critical error
+STC                             ; set carry flag if there is a critical error
 ; JMP CheckCriticalErrorFlagEnd ; can end now
 
 CheckCriticalErrorFlagEnd:
@@ -240,10 +259,14 @@ CheckCriticalErrorFlag	ENDP
 
 CODE    ENDS
 
+; data segment
 DATA    SEGMENT PUBLIC  'DATA'
 
-CriticalErrorFlag        DB ? ; flag...
-EventQueue QUEUESTRUC    <>   ; event queue...
+CriticalErrorFlag        DB ? ; 8-bit unsigned value, flag for critical
+              ;    errors. The value is 1 if there is an error, and 0 if there
+              ;    is not.
+
+EventQueue QUEUESTRUC    <>  ; Word queue containing events for the RoboTrike.
 
 DATA    ENDS
 
