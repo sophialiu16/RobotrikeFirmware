@@ -551,7 +551,7 @@ IN AL, DX                  ; get serial line status register value
 MOV BL, AL                 ; store lsr value
 
 CheckOverrunError:
-AND AL, LSR_OVERRUN_ERR    ; mask for overrun error bit
+AND AL, LSR_OVERRUN_ERROR  ; mask for overrun error bit
 JZ  CheckParityError       ; if no overrun error, check for next error
 ; JNZ OverrunError         ; otherwise enqueue error
 

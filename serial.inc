@@ -23,10 +23,10 @@ KICKSTART_ON       EQU 1 ; value indicating kickstart is needed to reactivate
 ;     state of data transfers
 
 LSR_DATAREADY      EQU 00000001B ; Data ready bit set, incoming character received (DR)
-LSR_OVERRUN_ERR    EQU 00000010B ; Overrun error (OE)
-LSR_PARITY_ERR     EQU 00000100B ; Parity error (PE)
-LSR_FRAMING_ERR    EQU 00001000B ; Framing error (FE)
-LSR_BREAK_INT      EQU 00010000B ; Break interrupt indicator (BI)
+LSR_OVERRUN_ERROR  EQU 00000010B ; Overrun error (OE)
+LSR_PARITY_ERROR   EQU 00000100B ; Parity error (PE)
+LSR_FRAMING_ERROR  EQU 00001000B ; Framing error (FE)
+LSR_BREAK_ERROR    EQU 00010000B ; Break interrupt indicator (BI)
 LSR_THR_EMPTY      EQU 00100000B ; THR empty indicator
 LSR_TRANS_EMPTY    EQU 01000000B ; Transmitter empty (TEMT) indicator
 
